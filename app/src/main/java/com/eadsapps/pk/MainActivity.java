@@ -20,9 +20,16 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+
+import com.google.android.gms.ads.*;
+import com.google.android.gms.ads.interstitial.InterstitialAd;
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
+
 public class MainActivity extends Activity {
     private WebView mWebView;
     private NetworkCallback networkCallback;
+    private InterstitialAd mInterstitialAd;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -30,6 +37,11 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // Initialize the Mobile Ads SDK
+        MobileAds.initialize(this, initializationStatus -> {});
+
+        // Load the interstitial ad
+        loadInterstitialAd();
         mWebView = findViewById(R.id.activity_main_webview);
         WebSettings webSettings = mWebView.getSettings();
         webSettings.setJavaScriptEnabled(true);
@@ -78,6 +90,46 @@ public class MainActivity extends Activity {
         connectivityManager.registerDefaultNetworkCallback(networkCallback);
     }
 
+    private void loadInterstitialAd() {
+        AdRequest adRequest = new AdRequest.Builder().build();
+
+        InterstitialAd.load(this, "ca-app-pub-3940256099942544/1033173712", adRequest,
+                new InterstitialAdLoadCallback() {
+                    @Override
+                    public void onAdLoaded(@NonNull InterstitialAd interstitialAd) {
+                        mInterstitialAd = interstitialAd;
+                        showInterstitialAd();
+                    }
+
+                    @Override
+                    public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+                        mInterstitialAd = null;
+                    }
+                });
+    }
+
+    private void showInterstitialAd() {
+        if (mInterstitialAd != null) {
+            mInterstitialAd.setFullScreenContentCallback(new FullScreenContentCallback() {
+                @Override
+                public void onAdDismissedFullScreenContent() {
+                    // Proceed with app logic after the ad is dismissed
+                }
+
+                @Override
+                public void onAdFailedToShowFullScreenContent(AdError adError) {
+                    // Handle the error
+                }
+
+                @Override
+                public void onAdShowedFullScreenContent() {
+                    mInterstitialAd = null; // Set the ad reference to null after showing
+                }
+            });
+
+            mInterstitialAd.show(this);
+        }
+    }
     private boolean isNetworkAvailable() {
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         Network nw = connectivityManager.getActiveNetwork();
